@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices.ComTypes;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class movement : MonoBehaviour
 {
@@ -49,6 +50,15 @@ public class movement : MonoBehaviour
     private Camera theCamera;
     private Rigidbody myRigid;
 
+    //아이템 집을 수 있는 범위내
+    bool isInRange = false;
+    bool isGrab = false;
+
+    //현재 잡고 있는 오브젝트 
+    GameObject grabObject;
+    public GameObject[] robots;
+    public Image ui;
+
 
     // Start is called before the first frame update
     void Start()
@@ -72,7 +82,12 @@ public class movement : MonoBehaviour
         Move();
         CameraRotation();
         CharacterRotation();
+        TryCatch();
+        SetUi();
+    }
 
+    private void FixedUpdate() {
+        myRigid.angularVelocity = Vector3.zero;
     }
 
     // 앉기 시도
@@ -81,6 +96,62 @@ public class movement : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.LeftControl))
         {
             Crouch();
+        }
+    }
+
+    private void TryCatch() {
+
+        bool isPressButton = Input.GetButtonDown("Grab");
+
+        if (isPressButton) {
+            if (isGrab) {
+                robots[grabObject.layer - 8].SetActive(false);
+                grabObject.transform.position = theCamera.transform.position;
+                grabObject.SetActive(true);
+                isGrab = false;
+            }
+            else if (!isGrab) {
+                if(isLookAtRobot() && isInRange) {
+                    grabObject.SetActive(false);
+                    robots[grabObject.layer - 8].SetActive(true);
+                    isGrab = true;
+                }
+            }
+        }
+       
+    }
+
+
+    private bool isLookAtRobot() {
+        RaycastHit hit;
+        if (Physics.Raycast(theCamera.transform.position, theCamera.transform.forward, out hit, 15)) {
+            if (hit.collider.tag == "robot") {
+                grabObject = hit.collider.gameObject;
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private void SetUi() {
+        RaycastHit hit;
+        if (Physics.Raycast(theCamera.transform.position, theCamera.transform.forward, out hit, 15)) {
+            if (hit.collider.tag == "robot" && isInRange && !isGrab) {
+                ui.gameObject.SetActive(true);
+            } else {
+                ui.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    private void OnTriggerEnter(Collider other) {
+        if(other.tag == "robot") {
+            isInRange = true;
+        } else 
+        {
+            isInRange = false;
         }
     }
 
